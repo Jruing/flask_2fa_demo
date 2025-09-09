@@ -1,0 +1,218 @@
+<html>
+  <head>
+    <title>2FA</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@5"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body>
+    <div role="tablist" class="tabs tabs-border">
+      <a
+        role="tab"
+        class="tab tab-active"
+        onclick="tab_switch(this, 'register-container')"
+        >注册</a
+      >
+      <a role="tab" class="tab" onclick="tab_switch(this, 'login-container')"
+        >登录</a
+      >
+    </div>
+    <!-- 添加flex容器使内容居中 -->
+    <div
+      class="min-h-screen flex items-center justify-center"
+      id="register-container"
+    >
+      <fieldset
+        class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4"
+      >
+        <legend class="fieldset-legend">注册</legend>
+
+        <label class="label">用户名</label>
+
+        <input
+          type="text"
+          class="input"
+          placeholder="用户名"
+          id="username"
+          required
+        />
+        <div class="alert alert-error username" style="display: none">
+          <span>用户名为必填项</span>
+        </div>
+        <label class="label">密码</label>
+        <input
+          type="password"
+          class="input"
+          placeholder="输入密码"
+          id="first-password"
+        />
+
+        <label class="label">确认密码</label>
+        <input
+          type="password"
+          class="input"
+          placeholder="再次输入密码"
+          id="second-password"
+        />
+        <div class="alert alert-error require_passwd" style="display: none">
+          <span>两次密码不一致</span>
+        </div>
+        <button class="btn btn-neutral mt-4" id="registerbtn">注册</button>
+      </fieldset>
+    </div>
+
+    <div
+      class="min-h-screen flex items-center justify-center hidden"
+      id="login-container"
+    >
+      <fieldset
+        class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4"
+      >
+        <legend class="fieldset-legend">登录</legend>
+
+        <label class="label">用户名</label>
+        <input type="text" class="input" placeholder="用户名" id="login_username" required/>
+        <div class="alert alert-error login-username" style="display: none">
+          <span>用户名为必填项</span>
+        </div>
+
+        <label class="label">密码</label>
+        <input type="password" class="input" placeholder="密码" id="login_passwd" required />
+        <div class="alert alert-error login-password" style="display: none">
+          <span>密码为必填项</span>
+        </div>
+
+        <label class="label">验证码</label>
+        <input type="number" class="input" placeholder="验证码" id="code" maxlength="6" maxlength="6" required />
+        <div class="alert alert-error login-code" style="display: none">
+          <span>验证码为必填项且长度必须为6</span>
+        </div>
+
+        <button class="btn btn-neutral mt-4" id="loginbtn">登录</button>
+      </fieldset>
+    </div>
+
+    <div
+      class="min-h-screen flex items-center justify-center"
+      id="qrcode-container"
+    >
+      <img id="myImg" class="py-4" src="" alt="Base64 Image" />
+    </div>
+  </body>
+  <script>
+    function tab_switch(element, containerId) {
+      // 移除所有tab的active类
+      var tabs = document.querySelectorAll(".tab");
+      tabs.forEach(function (tab) {
+        tab.classList.remove("tab-active");
+      });
+
+      // 为点击的tab添加active类
+      element.classList.add("tab-active");
+
+      // 隐藏所有容器
+      document.getElementById("register-container").classList.add("hidden");
+      document.getElementById("login-container").classList.add("hidden");
+
+      // 显示对应的容器
+      document.getElementById(containerId).classList.remove("hidden");
+    }
+
+    document
+      .querySelector("#registerbtn")
+      .addEventListener("click", function () {
+        var username = document.querySelector("#username").value;
+        console.log(">>>>>>>>>", username);
+        if (username === undefined || username === "") {
+          document.querySelector(".username").style.display = "block";
+          return;
+        } else {
+          document.querySelector(".username").style.display = "none";
+          var firstPassword = document.getElementById("first-password").value;
+          var secondPassword = document.getElementById("second-password").value;
+          if (firstPassword !== secondPassword || secondPassword === "") {
+            document.querySelector(".require_passwd").style.display = "block";
+          } else {
+            document.querySelector(".require_passwd").style.display = "none";
+            fetch("http://127.0.0.1:5000/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                username: username,
+                password: firstPassword,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.status === 0) {
+                  alert("注册成功");
+                  console.log(">>>>>>>>>", data.qrcode);
+                  document
+                    .getElementById("register-container")
+                    .classList.add("hidden");
+                  document
+                    .getElementById("qrcode-container")
+                    .classList.remove("hidden");
+                  document.getElementById("myImg").src = data.qrcode;
+                } else {
+                  alert("注册失败");
+                }
+              });
+          }
+        }
+      });
+
+    document.querySelector("#loginbtn").addEventListener("click", function () {
+      var username = document.querySelector("#login_username").value;
+      var password = document.querySelector("#login_passwd").value;
+      var code = document.querySelector("#code").value;
+
+      if (username === "" || username === undefined) {
+        document.querySelector(".login-username").style.display = "block";
+        return;
+      } else {
+        document.querySelector(".login-username").style.display = "none";
+      }
+
+      if (password === "" || password === undefined) {
+        document.querySelector(".login-password").style.display = "block";
+        return;
+      } else {
+        document.querySelector(".login-password").style.display = "none";
+      }
+
+      if (code === "" || code === undefined || code.length !== 6) {
+        document.querySelector(".login-code").style.display = "block";
+        return;
+      } else {
+        document.querySelector(".login-code").style.display = "none";
+      }
+
+      fetch("http://127.0.0.1:5000/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+            code: code
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === 0) {
+              alert("登录成功");
+            } else {
+              alert("登录失败");
+            }
+          });
+      }
+    );
+  </script>
+</html>
